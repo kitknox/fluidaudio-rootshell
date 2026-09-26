@@ -1,3 +1,16 @@
+# FluidAudio for rootshell
+
+This fork builds the `FluidAudio` SwiftPM product specifically for rootshell dictation.
+It keeps Parakeet recognition, Silero VAD, CTC vocabulary boosting, and native NeMo
+inverse text normalization. TTS resources and unrelated engines are excluded from
+the product; their upstream sources remain in the repository.
+
+See [the fork scope, validation, and size measurements](Documentation/rootshell.md).
+The upstream CLI is not a product of this fork. The upstream documentation below
+also describes components that this fork does not compile.
+
+---
+
 ![banner.png](banner.png)
 
 # FluidAudio - Transcription, Text-to-speech, VAD, Speaker diarization with CoreML Models

@@ -19,21 +19,14 @@ let package = Package(
             name: "FluidAudio",
             targets: ["FluidAudio"]
         ),
-        .executable(
-            name: "fluidaudiocli",
-            targets: ["FluidAudioCLI"]
-        ),
     ],
     traits: [
-        // Opt out of the NeMo text-normalization engine (~8 MB per slice, a prebuilt
-        // Rust staticlib) for ASR/VAD/diarization-only apps, or when the app
-        // links its own Rust runtime (#880, #888):
-        //   .package(url: ..., traits: [])
-        // TTS frontends and `TextNormalizer` then pass text through unchanged
-        // and report `isNativeAvailable == false`.
+        // Preserve the upstream opt-out API, but keep it enabled for rootshell:
+        // disabling this trait makes TextNormalizer pass text through unchanged.
+        // Binary size is reduced by excluding TTS callers, not by disabling ITN.
         .trait(
             name: "NemoTextProcessing",
-            description: "Link the bundled NeMo text-normalization engine (TTS frontends, ITN)."
+            description: "Link native NeMo inverse text normalization for dictation."
         ),
         .default(enabledTraits: ["NemoTextProcessing"]),
     ],
@@ -42,18 +35,33 @@ let package = Package(
         .target(
             name: "FluidAudio",
             dependencies: [
-                "FastClusterWrapper",
                 "MachTaskSelfWrapper",
                 .target(name: "NemoTextProcessing", condition: .when(traits: ["NemoTextProcessing"])),
             ],
             path: "Sources/FluidAudio",
-            exclude: ["ASR/Parakeet/Unified/benchmark.md"],
-            resources: [
-                // Keep .process: .copy of a Resources-named directory breaks Apple code signing on iOS.
-                .process("TTS/LuxTts/G2p/Resources")
+            // Rootshell dictation only. Keep upstream sources on disk for merges,
+            // but do not compile unused engines or bundle their TTS resources.
+            exclude: [
+                "ASR/Canary",
+                "ASR/Cohere",
+                "ASR/Paraformer",
+                "ASR/SenseVoice",
+                "ASR/Parakeet/Streaming",
+                "ASR/Parakeet/Unified",
+                "ASR/Parakeet/SlidingWindow/SlidingWindowAsrManager.swift",
+                "ASR/Parakeet/SlidingWindow/SlidingWindowAsrSession.swift",
+                "Decision",
+                "Diarizer",
+                "Enhancement",
+                "Speaker",
+                "TTS",
+                "VAD/Fsmn",
+                "FluidAudioSwift.swift",
+                "ModelNames.swift",
             ]
         ),
-        // Byte-exact NeMo text normalization (FST engine, all 7 languages).
+        // Keep native NeMo inverse text normalization for rootshell dictation.
+        // With TTS callers excluded, dead stripping removes the unused FST grammars.
         // Prebuilt xcframework from FluidInference/text-processing-rs v0.3.1
         // (macOS, iOS, iOS Simulator and Mac Catalyst slices).
         .binaryTarget(
@@ -63,37 +71,45 @@ let package = Package(
             checksum: "5fa8c10d4ec26c1bb2413125f351a7222a4c68a23b74476680fbada7e26fc6aa"
         ),
         .target(
-            name: "FastClusterWrapper",
-            path: "Sources/FastClusterWrapper",
-            publicHeadersPath: "include"
-        ),
-        .target(
             name: "MachTaskSelfWrapper",
             path: "Sources/MachTaskSelfWrapper",
             publicHeadersPath: "include"
         ),
-        .executableTarget(
-            name: "FluidAudioCLI",
-            dependencies: ["FluidAudio"],
-            path: "Sources/FluidAudioCLI",
-            exclude: ["README.md"],
-            resources: [
-                .process("Utils/english.json")
-            ]
-        ),
         .testTarget(
             name: "FluidAudioTests",
-            dependencies: [
-                "FluidAudio",
-                "FluidAudioCLI",
+            dependencies: ["FluidAudio"],
+            exclude: [
+                "Shared/ArraySliceTests.swift",
+                "Shared/RandomAccessCollectionTests.swift",
+                "VAD/FsmnVadChunkingTests.swift",
+                "ASR/Parakeet/SlidingWindow/CTC/sample_medical.arpa",
+                "ASR/Canary",
+                "ASR/Cohere",
+                "ASR/Parakeet/EnglishBlocklistTests.swift",
+                "ASR/Parakeet/ModelNamesTests.swift",
+                "ASR/Parakeet/NemotronBenchmarkTests.swift",
+                "ASR/Parakeet/PerformanceMetricsTests.swift",
+                "ASR/Parakeet/SlidingWindow/SlidingWindowAsrManagerTests.swift",
+                "ASR/Parakeet/SlidingWindow/SlidingWindowAsrSessionTests.swift",
+                "ASR/Parakeet/SlidingWindow/SlidingWindowFinalWindowRegressionTests.swift",
+                "ASR/Parakeet/SlidingWindow/SlidingWindowVocabularyBoostingStreamingTests.swift",
+                "ASR/Parakeet/Streaming",
+                "ASR/Parakeet/UnifiedTokenTimingTests.swift",
+                "ASR/Parakeet/UnifiedVocabularySegmentTests.swift",
+                "ASR/Parakeet/UnifiedWindowingTests.swift",
+                "ASR/Parakeet/WordTimingTests.swift",
+                "CI",
+                "CLI",
+                "Decision",
+                "Diarizer",
+                "Enhancement",
+                "TTS",
             ],
-            resources: [
-                .process("TTS/LuxTts/Resources"),
-                .process("TTS/PocketTTS/Fixtures"),
-                // Real recordings (cleared for public release by the speaker) for the
-                // streaming final-window regression, issue #855.
-                .copy("ASR/Parakeet/SlidingWindow/Fixtures"),
-            ]
+            resources: [.copy("ASR/Parakeet/SlidingWindow/Fixtures")]
+        ),
+        .testTarget(
+            name: "RootshellCompatibilityTests",
+            dependencies: ["FluidAudio"]
         ),
     ],
     cxxLanguageStandard: .cxx17
