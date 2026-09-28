@@ -150,6 +150,26 @@ final class ModelCacheCompletenessTests: XCTestCase {
                 atPath: repoPath.appendingPathComponent("weights.bin.partial").path))
     }
 
+    // MARK: - SenseVoice public gate
+
+    func testSenseVoiceModelsExistRejectsInterruptedDownload() throws {
+        try makeBundle(ModelNames.SenseVoice.preprocessorFile)
+        try makeBundle(
+            ModelNames.SenseVoice.encoderFile, coremldata: false, partialWeights: true)
+        try makeFile(ModelNames.SenseVoice.vocabularyFile)
+
+        XCTAssertFalse(SenseVoiceModels.modelsExist(at: repoPath, precision: .fp16))
+
+        // Complete the encoder bundle: gate opens.
+        let encoder = repoPath.appendingPathComponent(ModelNames.SenseVoice.encoderFile)
+        try Data("x".utf8).write(to: encoder.appendingPathComponent("coremldata.bin"))
+        try FileManager.default.removeItem(
+            at: encoder.appendingPathComponent("weights/weight.bin.partial"))
+        XCTAssertTrue(SenseVoiceModels.modelsExist(at: repoPath, precision: .fp16))
+        // Other precisions still gated on their own encoder.
+        XCTAssertFalse(SenseVoiceModels.modelsExist(at: repoPath, precision: .int8))
+    }
+
     // MARK: - undersizedFiles (truncated vs incompatible diagnosis)
 
     func testUndersizedFilesFlagsTruncatedAndMissingFiles() throws {

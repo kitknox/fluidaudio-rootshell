@@ -45,7 +45,6 @@ let package = Package(
                 "ASR/Canary",
                 "ASR/Cohere",
                 "ASR/Paraformer",
-                "ASR/SenseVoice",
                 "ASR/Parakeet/Streaming",
                 "ASR/Parakeet/Unified",
                 "ASR/Parakeet/SlidingWindow/SlidingWindowAsrManager.swift",

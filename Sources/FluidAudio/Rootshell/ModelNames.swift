@@ -11,6 +11,8 @@ public enum Repo: String, CaseIterable, Sendable {
     case parakeetCtc06b = "FluidInference/parakeet-ctc-0.6b-coreml"
     case parakeetJa = "FluidInference/parakeet-0.6b-ja-coreml"
     case parakeetTdtCtc110m = "FluidInference/parakeet-tdt-ctc-110m-coreml"
+    /// SenseVoiceSmall (FunASR): non-autoregressive CTC ASR for zh / yue / ja / ko / en.
+    case senseVoiceSmall = "FluidInference/sensevoice-small-coreml"
 
     /// Repository slug (without owner).
     public var name: String {
@@ -33,6 +35,8 @@ public enum Repo: String, CaseIterable, Sendable {
             return "parakeet-0.6b-ja-coreml"
         case .parakeetTdtCtc110m:
             return "parakeet-tdt-ctc-110m-coreml"
+        case .senseVoiceSmall:
+            return "sensevoice-small-coreml"
         }
     }
 
@@ -208,6 +212,42 @@ public enum ModelNames {
         ]
     }
 
+    /// SenseVoiceSmall (FunASR) model names. 3-stage pipeline:
+    ///   Preprocessor (fp32, CPU): waveform → 560-d LFR features
+    ///   SenseVoiceSmall (fp16, ANE): features + lang/textnorm → CTC logits
+    ///   SenseVoiceSmall_fp32 (fp32): encoder fallback for non-ANE hardware
+    /// Plus `vocab.json` (25055 SentencePiece tokens, auto-fetched as a root file).
+    public enum SenseVoice {
+        public static let preprocessor = "SenseVoicePreprocessor"
+        public static let encoder = "SenseVoiceSmall"  // fp16, runs on ANE (default)
+        public static let encoderInt8 = "SenseVoiceSmall_int8"  // int8 weights, ANE, ~half size
+        public static let encoderFp32 = "SenseVoiceSmall_fp32"  // fp32 fallback (non-ANE)
+
+        public static let preprocessorFile = preprocessor + ".mlmodelc"
+        public static let encoderFile = encoder + ".mlmodelc"
+        public static let encoderInt8File = encoderInt8 + ".mlmodelc"
+        public static let encoderFp32File = encoderFp32 + ".mlmodelc"
+        public static let vocabularyFile = "vocab.json"
+
+        public static func requiredModels(precision: String? = nil) -> Set<String> {
+            let encoder: String
+            switch precision {
+            case "int8":
+                encoder = encoderInt8File
+            case "fp32":
+                encoder = encoderFp32File
+            default:
+                encoder = encoderFile
+            }
+            return [
+                preprocessorFile,
+                encoder,
+            ]
+        }
+
+        public static let requiredModels: Set<String> = requiredModels()
+    }
+
     /// VAD model names
     public enum VAD {
         public static let sileroVad = "silero-vad-unified-256ms-v6.2.1"
@@ -237,6 +277,8 @@ public enum ModelNames {
             return ModelNames.CTC.requiredModels
         case .parakeetJa:
             return ModelNames.TDTJa.requiredModels
+        case .senseVoiceSmall:
+            return ModelNames.SenseVoice.requiredModels(precision: variant)
         }
     }
 }

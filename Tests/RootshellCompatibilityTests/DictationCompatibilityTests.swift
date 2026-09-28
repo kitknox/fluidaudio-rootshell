@@ -40,6 +40,10 @@ final class DictationCompatibilityTests: XCTestCase {
         XCTAssertEqual(
             MLModelConfigurationUtils.defaultModelsDirectory(for: .vad).lastPathComponent,
             "silero-vad")
+        XCTAssertEqual(
+            MLModelConfigurationUtils.defaultModelsDirectory(for: .senseVoiceSmall).lastPathComponent,
+            "sensevoice-small")
+        XCTAssertEqual(ModelNames.SenseVoice.encoderInt8File, "SenseVoiceSmall_int8.mlmodelc")
         XCTAssertEqual(ParakeetEncoderPrecision.int4.encoderFileName, "EncoderInt4.mlmodelc")
         XCTAssertEqual(ParakeetEncoderPrecision.int8.encoderFileName, "Encoder.mlmodelc")
     }

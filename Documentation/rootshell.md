@@ -15,6 +15,9 @@ its trait in rootshell, since the app uses `TextNormalizer.normalizeSentence`.
   acoustic rescoring, and terms provided by rootshell's screen-vocabulary feature.
 - Native `TextNormalizer` and all of its existing behavior. Its Swift source,
   prebuilt Rust dependency version, and checksum are unchanged.
+- SenseVoiceSmall through `SenseVoiceManager` / `SenseVoiceModels`, used for Chinese,
+  Cantonese, Japanese, and Korean dictation. Rootshell loads the int8 encoder on the
+  Neural Engine and the fp32 encoder on Intel Macs and the simulator.
 - Model download/cancellation/progress, cache locations, model file names,
   precision choices, and load/cleanup behavior for all retained models.
 
@@ -34,9 +37,9 @@ upstream changes, update the retained metadata too; keep cache-folder names and
 filenames stable. `DiarizerError` moved unchanged into Shared because Silero's
 shared ANE memory helper throws it. This does not include the diarization engine.
 
-Tests for excluded APIs are omitted from the test target. Three tests for removed
-SenseVoice, Paraformer, and EOU APIs were removed from otherwise retained shared
-test files. The generic cache and downloader tests remain.
+Tests for excluded APIs are omitted from the test target. Two tests for removed
+Paraformer and EOU APIs were removed from otherwise retained shared test files.
+The generic cache and downloader tests remain.
 
 This scope applies to SwiftPM. The inherited CocoaPods spec and general upstream
 CLI/examples are not supported distribution paths for this fork.
